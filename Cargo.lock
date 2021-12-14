@@ -195,6 +195,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "compaster"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "env_logger",
+ "glam",
+ "pollster",
+ "rand",
+ "raw-window-handle",
+ "wgpu",
+ "winit",
+]
+
+[[package]]
 name = "copyless"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -377,21 +392,6 @@ dependencies = [
  "log",
  "regex",
  "termcolor",
-]
-
-[[package]]
-name = "fidmag"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bytemuck",
- "env_logger",
- "glam",
- "pollster",
- "rand",
- "raw-window-handle",
- "wgpu",
- "winit",
 ]
 
 [[package]]
