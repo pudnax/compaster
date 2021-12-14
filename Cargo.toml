@@ -1,0 +1,27 @@
+[package]
+name = "fidmag"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.51"
+bytemuck = {version = "1.7.2", features = ["derive"]}
+env_logger = "0.9.0"
+glam = { version = "0.20.1", features = ["bytemuck", "rand"] }
+pollster = "0.2.4"
+rand = "0.8.4"
+raw-window-handle = "0.4.2"
+# wgpu = "0.11.1"
+wgpu = { git = "https://github.com/gfx-rs/wgpu", rev = "f875e324558ea8225ffbf63c54063b5b35c4fdf2" }
+winit = "0.26.0"
+
+[profile.dev]
+debug = 0
+
+[profile.release]
+lto = true
+
+[profile.dev.package.'*']
+opt-level = 3
