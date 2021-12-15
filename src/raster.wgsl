@@ -1,7 +1,7 @@
 struct Pixel {
-  r: u32;
-  g: u32;
-  b: u32;
+  r: f32;
+  g: f32;
+  b: f32;
 };
 
 [[block]]
@@ -23,5 +23,5 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
   let index = global_id.x;
   let buf = &color_buffer.value[index];
 
-  (*buf) = Pixel(255u, 5u, 0u);
+  (*buf) = Pixel(0.15, 0.0, 0.1);
 }

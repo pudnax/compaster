@@ -1,11 +1,11 @@
 struct Pixel {
-  r: u32;
-  g: u32;
-  b: u32;
+  r: f32;
+  g: f32;
+  b: f32;
 };
 
 fn pixel_to_vec(p: Pixel) -> vec3<f32> {
-  return vec3<f32>(f32(p.r), f32(p.g), f32(p.b)) / 255.0;
+  return vec3<f32>(p.r, p.g, p.b);
 }
 
 [[block]]
