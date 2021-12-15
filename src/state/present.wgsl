@@ -27,7 +27,20 @@ struct VertexOutput {
 };
 
 [[stage(vertex)]]
-fn vs_main([[builtin(vertex_index)]] vertex_idx: u32) -> VertexOutput {
+fn vs_main_quad([[builtin(vertex_index)]] vertex_idx: u32) -> VertexOutput {
+  var pos = array<vec2<f32>, 6>(vec2<f32>( 1.0,  1.0),
+                                vec2<f32>( 1.0, -1.0),
+                                vec2<f32>(-1.0, -1.0),
+				vec2<f32>( 1.0,  1.0),
+                                vec2<f32>(-1.0, -1.0),
+				vec2<f32>(-1.0,  1.0));
+
+  let out = VertexOutput(vec4<f32>(pos[vertex_idx], 0.0, 1.0));
+  return out;
+}
+
+[[stage(vertex)]]
+fn vs_main_trig([[builtin(vertex_index)]] vertex_idx: u32) -> VertexOutput {
   let uv = vec2<u32>((vertex_idx << 1u) & 2u, vertex_idx & 2u);
   let out = VertexOutput(vec4<f32>(2.0 * vec2<f32>(uv) - 1.0, 0.0, 1.0));
   return out;
