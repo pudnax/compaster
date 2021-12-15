@@ -19,8 +19,8 @@ struct Uniform {
   screen_height: f32;
 };
 
-[[group(0), binding(0)]] var<uniform> screen_dims : Uniform;
-[[group(1), binding(0)]] var<storage, read> color_buffer: ColorBuffer;
+[[group(0), binding(0)]] var<storage, read> color_buffer: ColorBuffer;
+[[group(1), binding(0)]] var<uniform> screen_dims : Uniform;
 
 struct VertexOutput {
   [[builtin(position)]] pos: vec4<f32>;

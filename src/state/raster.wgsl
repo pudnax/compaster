@@ -7,10 +7,6 @@ struct ColorBuffer {
 
 struct Vertex { x: f32; y: f32; z: f32; };
 
-fn project(v: Vertex) -> vec3<f32> {
-  return vec3<f32>(v.x, v.y, v.z);
-}
-
 [[block]]
 struct VertexBuffer {
   values: array<Vertex>;
@@ -22,9 +18,25 @@ struct Uniform {
   height: f32;
 };
 
-[[group(0), binding(0)]] var<uniform> screen_dims : Uniform;
-[[group(1), binding(0)]] var<storage, read_write> color_buffer : ColorBuffer;
-[[group(2), binding(0)]] var<storage, read> vertex_buffer : VertexBuffer;
+[[block]]
+struct Camera {
+  view_pos: vec4<f32>;
+  view_proj: mat4x4<f32>;
+};
+
+[[group(0), binding(0)]] var<storage, read_write> color_buffer : ColorBuffer;
+[[group(1), binding(0)]] var<storage, read> vertex_buffer : VertexBuffer;
+[[group(2), binding(0)]] var<uniform> screen_dims : Uniform;
+[[group(3), binding(0)]] var<uniform> camera : Camera;
+
+fn project(v: Vertex) -> vec3<f32> {
+  var screen_pos = camera.view_proj * vec4<f32>(v.x, v.y, v.z, 1.0);
+  screen_pos.x = (screen_pos.x / screen_pos.w) * screen_dims.width;
+  screen_pos.y = (screen_pos.y / screen_pos.w) * screen_dims.height;
+
+  // return vec3<f32>(v.x, v.y, v.z);
+  return screen_pos.xyw;
+}
 
 fn color_pixel(x: u32, y: u32, pixel: Pixel) {
   let pixel_id = x + y * u32(screen_dims.width);
@@ -87,7 +99,7 @@ fn draw_triangle(v1: vec3<f32>, v2: vec3<f32>, v3: vec3<f32>) {
 }
 
 [[stage(compute), workgroup_size(256, 1, 1)]]
-fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
+fn raster([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
   let index = global_id.x;
   let vertex_idx = index * 3u;
 
@@ -104,4 +116,11 @@ fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
   // draw_line(v2, v3);
 
   draw_triangle(v1, v2, v3);
+}
+
+[[stage(compute), workgroup_size(256, 1, 1)]]
+fn clear([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
+  let index = global_id.x;
+
+  color_buffer.values[index] = Pixel(0., 1., 0.333);
 }

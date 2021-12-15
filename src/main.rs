@@ -1,13 +1,19 @@
+mod camera;
 mod state;
 
+use camera::Camera;
+use glam::vec3;
 use state::State;
 
 use std::time::{Duration, Instant};
 
 use color_eyre::Result;
 use winit::{
-    dpi::PhysicalSize,
-    event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+    dpi::{PhysicalPosition, PhysicalSize},
+    event::{
+        DeviceEvent, ElementState, Event, KeyboardInput, MouseScrollDelta, VirtualKeyCode,
+        WindowEvent,
+    },
     event_loop::{ControlFlow, EventLoop},
 };
 
@@ -22,7 +28,20 @@ fn main() -> Result<()> {
         .build(&event_loop)?;
     let PhysicalSize { width, height } = window.inner_size();
 
-    let mut state = pollster::block_on(State::new(&window, width, height))?;
+    let mut state = pollster::block_on({
+        let camera = Camera::new(
+            1.5,
+            0.5,
+            1.25,
+            vec3(0.0, 0.0, 0.0),
+            width as f32 / height as f32,
+        );
+        State::new(&window, width, height, camera)
+    })?;
+
+    let mut mouse_dragged = false;
+    let rotate_speed = 0.0025;
+    let zoom_speed = 0.002;
 
     let mut last_update_inst = Instant::now();
     let mut last_frame_inst = Instant::now();
@@ -66,8 +85,41 @@ fn main() -> Result<()> {
                 }
                 _ => {}
             },
+
+            Event::DeviceEvent { ref event, .. } => match event {
+                DeviceEvent::Button {
+                    #[cfg(target_os = "macos")]
+                        button: 0,
+                    #[cfg(not(target_os = "macos"))]
+                        button: 1,
+
+                    state: statee,
+                } => {
+                    let is_pressed = *statee == ElementState::Pressed;
+                    mouse_dragged = is_pressed;
+                }
+                DeviceEvent::MouseWheel { delta, .. } => {
+                    let scroll_amount = -match delta {
+                        // A mouse line is about 1 px.
+                        MouseScrollDelta::LineDelta(_, scroll) => scroll * 1.0,
+                        MouseScrollDelta::PixelDelta(PhysicalPosition { y: scroll, .. }) => {
+                            *scroll as f32
+                        }
+                    };
+                    state.camera.add_zoom(scroll_amount * zoom_speed);
+                }
+                DeviceEvent::MouseMotion { delta } => {
+                    if mouse_dragged {
+                        state.camera.add_yaw(-delta.0 as f32 * rotate_speed);
+                        state.camera.add_pitch(delta.1 as f32 * rotate_speed);
+                    }
+                }
+                _ => (),
+            },
+
             Event::RedrawRequested(_) => {
                 frame_counter.record(&mut last_frame_inst);
+                state.update();
                 match state.render() {
                     Ok(_) => {}
                     Err(wgpu::SurfaceError::Lost) => {

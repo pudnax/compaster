@@ -14,6 +14,11 @@ use util::{create_color_buffer, dispatch_size, v, Uniform, Vertex};
 use present_pass::{PresentBindings, PresentPass};
 use raster_pass::{RasterBindings, RasterPass};
 
+use crate::{
+    camera::{Camera, CameraUniform},
+    state::raster_pass::ClearPass,
+};
+
 pub struct State {
     device: wgpu::Device,
     surface: wgpu::Surface,
@@ -22,6 +27,10 @@ pub struct State {
 
     pub width: u32,
     pub height: u32,
+
+    pub camera: Camera,
+    camera_uniform: CameraUniform,
+    camera_buffer: wgpu::Buffer,
 
     screen_uniform: wgpu::Buffer,
     output_buffer: wgpu::Buffer,
@@ -35,10 +44,17 @@ pub struct State {
 
     present_pass: PresentPass,
     present_bindings: PresentBindings,
+
+    clear_pass: ClearPass,
 }
 
 impl State {
-    pub async fn new(window: &impl HasRawWindowHandle, width: u32, height: u32) -> Result<Self> {
+    pub async fn new(
+        window: &impl HasRawWindowHandle,
+        width: u32,
+        height: u32,
+        camera: Camera,
+    ) -> Result<Self> {
         let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
         let surface = unsafe { instance.create_surface(window) };
 
@@ -81,8 +97,17 @@ impl State {
 
         surface.configure(&device, &surface_config);
 
+        let mut camera_uniform = CameraUniform::default();
+        camera_uniform.update_view_proj(&camera);
+        let camera_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("Camera Buffer"),
+            contents: bytemuck::bytes_of(&camera_uniform),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
         let present_pass = PresentPass::new(&device, format);
         let raster_pass = RasterPass::new(&device);
+        let clear_pass = ClearPass::new(&device);
 
         let screen_uniform = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Screen Uniform Buffer"),
@@ -92,7 +117,9 @@ impl State {
 
         let output_buffer = create_color_buffer(&device, width, height);
 
-        let vertices = Vec::from([v!(200., 200., 1.), v!(300., 200., 0.1), v!(200., 300., 0.1)]);
+        // vec2 pos, float col
+        let vertices = Vec::from([v!(-1., -1., 1.), v!(-1., 1., 1.), v!(1., -1., 1.)]);
+        // let vertices = Vec::from([v!(100., 200., 1.), v!(200., 200., 1.), v!(300., 300., 1.)]);
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(&vertices),
@@ -100,13 +127,14 @@ impl State {
         });
 
         let present_bindings =
-            PresentBindings::new(&device, &present_pass, &screen_uniform, &output_buffer);
+            PresentBindings::new(&device, &present_pass, &output_buffer, &screen_uniform);
         let raster_bindings = RasterBindings::new(
             &device,
             &raster_pass,
-            &screen_uniform,
             &output_buffer,
             &vertex_buffer,
+            &screen_uniform,
+            &camera_buffer,
         );
 
         Ok(Self {
@@ -117,6 +145,10 @@ impl State {
 
             width,
             height,
+
+            camera,
+            camera_uniform,
+            camera_buffer,
 
             screen_uniform,
             output_buffer,
@@ -129,7 +161,18 @@ impl State {
 
             present_pass,
             present_bindings,
+
+            clear_pass,
         })
+    }
+
+    pub fn update(&mut self) {
+        self.camera_uniform.update_view_proj(&self.camera);
+        self.queue.write_buffer(
+            &self.camera_buffer,
+            0,
+            bytemuck::cast_slice(&[self.camera_uniform]),
+        );
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -167,6 +210,12 @@ impl State {
             let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                 label: Some("Compute Pass"),
             });
+
+            self.clear_pass.record(
+                &mut cpass,
+                &self.raster_bindings,
+                dispatch_size(self.width * self.height),
+            );
 
             self.raster_pass.record(
                 &mut cpass,

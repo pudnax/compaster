@@ -4,20 +4,6 @@ pub struct PresentPass {
 
 impl PresentPass {
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
-        let uniform_bind_group =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("Present: Uniform Bind Group Layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                }],
-            });
         let output_color_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 label: Some("Present: Output Buffer Bind Group Layout"),
@@ -32,9 +18,23 @@ impl PresentPass {
                     count: None,
                 }],
             });
+        let uniform_bind_group =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Present: Uniform Bind Group Layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }],
+            });
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Present Pipeline Layout"),
-            bind_group_layouts: &[&uniform_bind_group, &output_color_bind_group_layout],
+            bind_group_layouts: &[&output_color_bind_group_layout, &uniform_bind_group],
             push_constant_ranges: &[],
         });
         let shader = device.create_shader_module(&wgpu::include_wgsl!("present.wgsl"));
@@ -70,28 +70,28 @@ impl PresentBindings {
     pub fn new(
         device: &wgpu::Device,
         PresentPass { pipeline }: &PresentPass,
-        uniform: &wgpu::Buffer,
         color_buffer: &wgpu::Buffer,
+        uniform: &wgpu::Buffer,
     ) -> Self {
-        let uniform = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Present: Uniform Bind Group"),
-            layout: &pipeline.get_bind_group_layout(0),
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: uniform.as_entire_binding(),
-            }],
-        });
         let color_buffer = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Present: Output Buffer Bind Group"),
-            layout: &pipeline.get_bind_group_layout(1),
+            layout: &pipeline.get_bind_group_layout(0),
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: color_buffer.as_entire_binding(),
             }],
         });
+        let uniform = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Present: Uniform Bind Group"),
+            layout: &pipeline.get_bind_group_layout(1),
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform.as_entire_binding(),
+            }],
+        });
         Self {
-            uniform,
             color_buffer,
+            uniform,
         }
     }
 
@@ -103,7 +103,7 @@ impl PresentBindings {
     ) {
         self.color_buffer = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Present: Output Buffer Bind Group"),
-            layout: &pipeline.get_bind_group_layout(1),
+            layout: &pipeline.get_bind_group_layout(0),
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: color_buffer.as_entire_binding(),
@@ -121,8 +121,8 @@ impl<'a> PresentPass {
         'a: 'pass,
     {
         rpass.set_pipeline(&self.pipeline);
-        rpass.set_bind_group(0, &bindings.uniform, &[]);
-        rpass.set_bind_group(1, &bindings.color_buffer, &[]);
+        rpass.set_bind_group(0, &bindings.color_buffer, &[]);
+        rpass.set_bind_group(1, &bindings.uniform, &[]);
         rpass.draw(0..3, 0..1);
     }
 }
