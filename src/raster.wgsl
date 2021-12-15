@@ -1,7 +1,13 @@
+struct Pixel {
+  r: u32;
+  g: u32;
+  b: u32;
+};
+
 [[block]]
 struct ColorBuffer {
-  value: array<u32>;
- };
+  value: array<Pixel>;
+};
 
 [[block]]
 struct Uniform {
@@ -10,14 +16,12 @@ struct Uniform {
 };
 
 [[group(0), binding(0)]] var<uniform> screen_dims : Uniform;
-// write?
 [[group(1), binding(0)]] var<storage, read_write> color_buffer: ColorBuffer;
 
 [[stage(compute), workgroup_size(256, 1, 1)]]
 fn main([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
-  let index = global_id.x * 3u;
+  let index = global_id.x;
+  let buf = &color_buffer.value[index];
 
-  color_buffer.value[index + 0u] = 25u;
-  color_buffer.value[index + 1u] = 1u;
-  color_buffer.value[index + 2u] = 1u;
+  (*buf) = Pixel(255u, 5u, 0u);
 }

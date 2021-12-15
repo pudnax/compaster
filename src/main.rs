@@ -13,7 +13,7 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
-const NUM_CHANNELS: u64 = 4;
+const NUM_CHANNELS: u64 = 3;
 const WORKGROUP_SIZE: u32 = 256;
 pub const fn dispatch_size(len: u32) -> u32 {
     let subgroup_size = WORKGROUP_SIZE;
@@ -115,7 +115,7 @@ impl State {
 
         let output_buffer = {
             let size =
-                std::mem::size_of::<u32>() as u64 * width as u64 * height as u64 * NUM_CHANNELS;
+                std::mem::size_of::<f32>() as u64 * width as u64 * height as u64 * NUM_CHANNELS;
 
             device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Output Buffer"),
@@ -169,7 +169,7 @@ impl State {
 
         self.output_buffer = {
             let size =
-                std::mem::size_of::<u32>() as u64 * width as u64 * height as u64 * NUM_CHANNELS;
+                std::mem::size_of::<f32>() as u64 * width as u64 * height as u64 * NUM_CHANNELS;
 
             self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Output Buffer"),
@@ -345,7 +345,7 @@ impl<'a> PresentPass {
         rpass.set_pipeline(&self.pipeline);
         rpass.set_bind_group(0, &bindings.uniform, &[]);
         rpass.set_bind_group(1, &bindings.color_buffer, &[]);
-        rpass.draw(0..6, 0..1);
+        rpass.draw(0..3, 0..1);
     }
 }
 
@@ -412,7 +412,7 @@ impl RasterBindings {
         color_buffer: &wgpu::Buffer,
     ) -> Self {
         let uniform = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Pressent: Uniform Bind Group"),
+            label: Some("Raster: Uniform Bind Group"),
             layout: &pipeline.get_bind_group_layout(0),
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
@@ -420,7 +420,7 @@ impl RasterBindings {
             }],
         });
         let color_buffer = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Present: Output Buffer Bind Group"),
+            label: Some("Raster: Output Buffer Bind Group"),
             layout: &pipeline.get_bind_group_layout(1),
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
