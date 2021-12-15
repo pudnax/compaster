@@ -9,7 +9,7 @@ mod present_pass;
 mod raster_pass;
 mod util;
 
-use util::{create_color_buffer, dispatch_size, Uniform};
+use util::{create_color_buffer, dispatch_size, v, Uniform, Vertex};
 
 use present_pass::{PresentBindings, PresentPass};
 use raster_pass::{RasterBindings, RasterPass};
@@ -25,6 +25,10 @@ pub struct State {
 
     screen_uniform: wgpu::Buffer,
     output_buffer: wgpu::Buffer,
+
+    vertices: Vec<Vertex>,
+    #[allow(dead_code)]
+    vertex_buffer: wgpu::Buffer,
 
     raster_pass: RasterPass,
     raster_bindings: RasterBindings,
@@ -88,10 +92,22 @@ impl State {
 
         let output_buffer = create_color_buffer(&device, width, height);
 
+        let vertices = Vec::from([v!(200., 200., 1.), v!(300., 200., 0.1), v!(200., 300., 0.1)]);
+        let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(&vertices),
+            usage: wgpu::BufferUsages::STORAGE,
+        });
+
         let present_bindings =
             PresentBindings::new(&device, &present_pass, &screen_uniform, &output_buffer);
-        let raster_bindings =
-            RasterBindings::new(&device, &raster_pass, &screen_uniform, &output_buffer);
+        let raster_bindings = RasterBindings::new(
+            &device,
+            &raster_pass,
+            &screen_uniform,
+            &output_buffer,
+            &vertex_buffer,
+        );
 
         Ok(Self {
             device,
@@ -103,8 +119,10 @@ impl State {
             height,
 
             screen_uniform,
-
             output_buffer,
+
+            vertices,
+            vertex_buffer,
 
             raster_pass,
             raster_bindings,
@@ -153,7 +171,7 @@ impl State {
             self.raster_pass.record(
                 &mut cpass,
                 &self.raster_bindings,
-                dispatch_size(self.width * self.height),
+                dispatch_size(self.vertices.len() as u32 / 3),
             );
         }
 

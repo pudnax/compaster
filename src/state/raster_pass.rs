@@ -32,26 +32,26 @@ impl RasterPass {
                     count: None,
                 }],
             });
-        // let vertex_bind_group_layout =
-        //     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        //         label: Some("Raster: Vertex Bind Group Layout"),
-        //         entries: &[wgpu::BindGroupLayoutEntry {
-        //             binding: 0,
-        //             visibility: wgpu::ShaderStages::COMPUTE,
-        //             ty: wgpu::BindingType::Buffer {
-        //                 ty: wgpu::BufferBindingType::Storage { read_only: true },
-        //                 has_dynamic_offset: false,
-        //                 min_binding_size: None,
-        //             },
-        //             count: None,
-        //         }],
-        //     });
+        let vertex_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Raster: Vertex Bind Group Layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }],
+            });
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Raster Pipeline Layout"),
             bind_group_layouts: &[
                 &uniform_bind_group,
                 &output_color_bind_group_layout,
-                // &vertex_bind_group_layout,
+                &vertex_bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
@@ -69,7 +69,7 @@ impl RasterPass {
 pub struct RasterBindings {
     uniform: wgpu::BindGroup,
     pub color_buffer: wgpu::BindGroup,
-    // vertex_buffer: wgpu::BindGroup,
+    vertex_buffer: wgpu::BindGroup,
 }
 
 impl RasterBindings {
@@ -78,7 +78,7 @@ impl RasterBindings {
         RasterPass { pipeline }: &RasterPass,
         uniform: &wgpu::Buffer,
         color_buffer: &wgpu::Buffer,
-        // vertex_buffer: &wgpu::Buffer,
+        vertex_buffer: &wgpu::Buffer,
     ) -> Self {
         let uniform = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Raster: Uniform Bind Group"),
@@ -96,18 +96,18 @@ impl RasterBindings {
                 resource: color_buffer.as_entire_binding(),
             }],
         });
-        // let vertex_buffer = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        // label: Some("Raster: Output Buffer Bind Group"),
-        // layout: &pipeline.get_bind_group_layout(2),
-        // entries: &[wgpu::BindGroupEntry {
-        //     binding: 0,
-        //     resource: vertex_buffer.as_entire_binding(),
-        // }],
-        // });
+        let vertex_buffer = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Raster: Output Buffer Bind Group"),
+            layout: &pipeline.get_bind_group_layout(2),
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: vertex_buffer.as_entire_binding(),
+            }],
+        });
         Self {
             uniform,
             color_buffer,
-            // vertex_buffer,
+            vertex_buffer,
         }
     }
 
@@ -140,7 +140,7 @@ impl<'a> RasterPass {
         cpass.set_pipeline(&self.pipeline);
         cpass.set_bind_group(0, &bindings.uniform, &[]);
         cpass.set_bind_group(1, &bindings.color_buffer, &[]);
-        // cpass.set_bind_group(2, &bindings.vertex_buffer, &[]);
+        cpass.set_bind_group(2, &bindings.vertex_buffer, &[]);
         cpass.dispatch(dispatch_size, 1, 1);
     }
 }

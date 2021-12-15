@@ -48,3 +48,29 @@ pub fn create_color_buffer(device: &wgpu::Device, width: u32, height: u32) -> wg
         mapped_at_creation: false,
     })
 }
+
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+pub struct Vertex {
+    v: [f32; 3],
+}
+
+#[allow(dead_code)]
+impl Vertex {
+    pub const SIZE: u64 = std::mem::size_of::<Self>() as _;
+    pub const ATTR: [wgpu::VertexAttribute; 1] = wgpu::vertex_attr_array![0 => Float32x3];
+
+    pub const fn new(x: f32, y: f32, z: f32) -> Self {
+        Self { v: [x, y, z] }
+    }
+}
+
+macro_rules! v {
+    ($x:expr, $y:expr, $z:expr) => {
+        Vertex::new($x, $y, $z)
+    };
+}
+pub(crate) use v;
+
+#[allow(dead_code)]
+pub const TRIG: [Vertex; 3] = [v!(0.0, 0.5, 0.0), v!(-0.5, 0.0, 0.0), v!(0.5, 0.0, 0.0)];
