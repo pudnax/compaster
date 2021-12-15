@@ -1,4 +1,3 @@
-use bytemuck::{Pod, Zeroable};
 use color_eyre::Result;
 use raw_window_handle::HasRawWindowHandle;
 use wgpu::{
@@ -8,58 +7,12 @@ use wgpu::{
 
 mod present_pass;
 mod raster_pass;
+mod util;
+
+use util::{create_color_buffer, dispatch_size, Uniform};
 
 use present_pass::{PresentBindings, PresentPass};
 use raster_pass::{RasterBindings, RasterPass};
-
-pub(crate) const WORKGROUP_SIZE: u32 = 256;
-pub const fn dispatch_size(len: u32) -> u32 {
-    let subgroup_size = WORKGROUP_SIZE;
-    let padded_size = (subgroup_size - len % subgroup_size) % subgroup_size;
-    (len + padded_size) / subgroup_size
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-pub(crate) struct Uniform {
-    screen_width: f32,
-    screen_height: f32,
-}
-
-impl Uniform {
-    pub fn new(screen_width: f32, screen_height: f32) -> Self {
-        Self {
-            screen_width,
-            screen_height,
-        }
-    }
-
-    pub fn update(queue: &wgpu::Queue, buffer: &wgpu::Buffer, width: f32, height: f32) {
-        queue.write_buffer(buffer, 0, bytemuck::bytes_of(&Uniform::new(width, height)));
-    }
-}
-
-fn create_color_buffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Buffer {
-    use std::mem::size_of;
-    #[repr(C)]
-    struct Pixel {
-        r: f32,
-        g: f32,
-        b: f32,
-    }
-    assert!(size_of::<Pixel>() == size_of::<[f32; 3]>());
-
-    let pixel_size = size_of::<Pixel>() as u64;
-    let (width, height) = (width as u64, height as u64);
-    let size = pixel_size * width * height;
-
-    device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("Output Buffer"),
-        size,
-        usage: wgpu::BufferUsages::STORAGE,
-        mapped_at_creation: false,
-    })
-}
 
 pub struct State {
     device: wgpu::Device,
@@ -129,24 +82,16 @@ impl State {
 
         let screen_uniform = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Screen Uniform Buffer"),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             contents: bytemuck::bytes_of(&Uniform::new(width as _, height as _)),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
         let output_buffer = create_color_buffer(&device, width, height);
 
-        let present_bindings = PresentBindings::new(
-            &device,
-            &present_pass.pipeline,
-            &screen_uniform,
-            &output_buffer,
-        );
-        let raster_bindings = RasterBindings::new(
-            &device,
-            &raster_pass.pipeline,
-            &screen_uniform,
-            &output_buffer,
-        );
+        let present_bindings =
+            PresentBindings::new(&device, &present_pass, &screen_uniform, &output_buffer);
+        let raster_bindings =
+            RasterBindings::new(&device, &raster_pass, &screen_uniform, &output_buffer);
 
         Ok(Self {
             device,
@@ -178,16 +123,14 @@ impl State {
         Uniform::update(&self.queue, &self.screen_uniform, width as _, height as _);
 
         self.output_buffer = create_color_buffer(&self.device, width, height);
-        self.present_bindings = PresentBindings::new(
+        self.present_bindings.update_color_buffer(
             &self.device,
-            &self.present_pass.pipeline,
-            &self.screen_uniform,
+            &self.present_pass,
             &self.output_buffer,
         );
-        self.raster_bindings = RasterBindings::new(
+        self.raster_bindings.update_color_buffer(
             &self.device,
-            &self.raster_pass.pipeline,
-            &self.screen_uniform,
+            &self.raster_pass,
             &self.output_buffer,
         );
     }

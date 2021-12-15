@@ -1,5 +1,5 @@
 pub struct PresentPass {
-    pub pipeline: wgpu::RenderPipeline,
+    pipeline: wgpu::RenderPipeline,
 }
 
 impl PresentPass {
@@ -69,7 +69,7 @@ pub struct PresentBindings {
 impl PresentBindings {
     pub fn new(
         device: &wgpu::Device,
-        pipeline: &wgpu::RenderPipeline,
+        PresentPass { pipeline }: &PresentPass,
         uniform: &wgpu::Buffer,
         color_buffer: &wgpu::Buffer,
     ) -> Self {
@@ -93,6 +93,22 @@ impl PresentBindings {
             uniform,
             color_buffer,
         }
+    }
+
+    pub fn update_color_buffer(
+        &mut self,
+        device: &wgpu::Device,
+        PresentPass { pipeline }: &PresentPass,
+        color_buffer: &wgpu::Buffer,
+    ) {
+        self.color_buffer = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Present: Output Buffer Bind Group"),
+            layout: &pipeline.get_bind_group_layout(1),
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: color_buffer.as_entire_binding(),
+            }],
+        });
     }
 }
 
