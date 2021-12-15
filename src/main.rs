@@ -205,11 +205,11 @@ impl State {
         let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
             label: Some("Compute Pass"),
         });
-        // self.raster_pass.record(&mut cpass, &self.raster_bindings);
-        cpass.set_pipeline(&self.raster_pass.pipeline);
-        cpass.set_bind_group(0, &self.raster_bindings.uniform, &[]);
-        cpass.set_bind_group(1, &self.raster_bindings.color_buffer, &[]);
-        cpass.dispatch(dispatch_size(self.width * self.height), 1, 1);
+        self.raster_pass.record(
+            &mut cpass,
+            &self.raster_bindings,
+            dispatch_size(self.width * self.height),
+        );
         drop(cpass);
 
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -229,11 +229,7 @@ impl State {
             }],
             depth_stencil_attachment: None,
         });
-        // self.present_pass.record(&mut rpass, &self.present_bindings);
-        rpass.set_pipeline(&self.present_pass.pipeline);
-        rpass.set_bind_group(0, &self.present_bindings.uniform, &[]);
-        rpass.set_bind_group(1, &self.present_bindings.color_buffer, &[]);
-        rpass.draw(0..6, 0..1);
+        self.present_pass.record(&mut rpass, &self.present_bindings);
         drop(rpass);
 
         self.queue.submit(Some(encoder.finish()));
@@ -342,9 +338,9 @@ impl PresentBindings {
 }
 
 impl<'a> PresentPass {
-    fn record<'b>(&'a self, rpass: &'b mut wgpu::RenderPass<'b>, bindings: &'b PresentBindings)
+    fn record<'pass>(&'a self, rpass: &mut wgpu::RenderPass<'pass>, bindings: &'a PresentBindings)
     where
-        'a: 'b,
+        'a: 'pass,
     {
         rpass.set_pipeline(&self.pipeline);
         rpass.set_bind_group(0, &bindings.uniform, &[]);
@@ -439,14 +435,18 @@ impl RasterBindings {
 }
 
 impl<'a> RasterPass {
-    fn record<'b>(&'a self, cpass: &'b mut wgpu::ComputePass<'b>, bindings: &'b RasterBindings)
-    where
-        'a: 'b,
+    fn record<'pass>(
+        &'a self,
+        cpass: &mut wgpu::ComputePass<'pass>,
+        bindings: &'a RasterBindings,
+        dispatch_size: u32,
+    ) where
+        'a: 'pass,
     {
         cpass.set_pipeline(&self.pipeline);
         cpass.set_bind_group(0, &bindings.uniform, &[]);
         cpass.set_bind_group(1, &bindings.color_buffer, &[]);
-        cpass.dispatch(3, 0, 1);
+        cpass.dispatch(dispatch_size, 1, 1);
     }
 }
 
