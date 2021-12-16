@@ -1,8 +1,6 @@
-struct Pixel { r: f32; g: f32; b: f32; };
-
 [[block]]
 struct ColorBuffer {
-  values: array<Pixel>;
+  values: array<atomic<u32>>;
 };
 
 struct Vertex { x: f32; y: f32; z: f32; };
@@ -37,9 +35,12 @@ fn project(v: Vertex) -> vec3<f32> {
   return screen_pos.xyw;
 }
 
-fn color_pixel(x: u32, y: u32, pixel: Pixel) {
-  let pixel_id = x + y * u32(screen_dims.width);
-  color_buffer.values[pixel_id] = pixel;
+fn color_pixel(x: u32, y: u32, r: u32, g: u32, b: u32) {
+  let pixelID = u32(x + y * u32(screen_dims.width)) * 3u;
+
+  atomicMin(&color_buffer.values[pixelID + 0u], r);
+  atomicMin(&color_buffer.values[pixelID + 1u], g);
+  atomicMin(&color_buffer.values[pixelID + 2u], b);
 }
 
 fn draw_line(v1: vec3<f32>, v2: vec3<f32>) {
@@ -47,7 +48,8 @@ fn draw_line(v1: vec3<f32>, v2: vec3<f32>) {
   for (var i = 0; i < dist; i = i + 1) {
     let x = v1.x + (v2.x - v1.x) * (f32(i) / f32(dist));
     let y = v1.y + (v2.y - v1.y) * (f32(i) / f32(dist));
-    color_pixel(u32(x), u32(y), Pixel(1.0, 1.0, 1.0));
+    // color_pixel(u32(x), u32(y), vec3<f32>(1.0, 1.0, 1.0));
+    color_pixel(u32(x), u32(y), 255u, 255u, 255u);
   }
 }
 
@@ -83,7 +85,7 @@ fn draw_triangle(v1: vec3<f32>, v2: vec3<f32>, v3: vec3<f32>) {
   for (var x: u32 = startX; x <= endX; x = x + 1u) {
     for (var y : u32 = startY; y <= endY; y = y + 1u) {
       let bc = barycentric(v1, v2, v3, vec2<f32>(f32(x), f32(y)));
-      let color = (bc.x * v1.z + bc.y * v2.z + bc.z * v3.z) - 10.;
+      let color = (bc.x * v1.z + bc.y * v2.z + bc.z * v3.z) * 50. - 400.;
 
       let R = color;
       let G = color;
@@ -92,7 +94,7 @@ fn draw_triangle(v1: vec3<f32>, v2: vec3<f32>, v3: vec3<f32>) {
       if (bc.x < 0.0 || bc.y < 0.0 || bc.z < 0.0) {
         continue;
       }
-      color_pixel(x, y, Pixel(R, G, B));
+      color_pixel(x, y, u32(R), u32(G), u32(B));
     }
   }
 }
@@ -107,14 +109,13 @@ fn is_off_screen(v: vec3<f32>) -> bool {
   return false;
 }
 
-[[stage(compute), workgroup_size(256, 1, 1)]]
+[[stage(compute), workgroup_size(256, 1)]]
 fn raster([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
-  let index = global_id.x;
-  let vertex_idx = index * 3u;
+  let index = global_id.x * 3u;
 
-  let v1 = project(vertex_buffer.values[vertex_idx + 0u]);
-  let v2 = project(vertex_buffer.values[vertex_idx + 1u]);
-  let v3 = project(vertex_buffer.values[vertex_idx + 2u]);
+  let v1 = project(vertex_buffer.values[index + 0u]);
+  let v2 = project(vertex_buffer.values[index + 1u]);
+  let v3 = project(vertex_buffer.values[index + 2u]);
 
   if (is_off_screen(v1) || is_off_screen(v2) || is_off_screen(v3)) {
     return;
@@ -131,9 +132,11 @@ fn raster([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
   draw_triangle(v1, v2, v3);
 }
 
-[[stage(compute), workgroup_size(256, 1, 1)]]
+[[stage(compute), workgroup_size(256, 1)]]
 fn clear([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
-  let index = global_id.x;
+  let index = global_id.x * 3u;
 
-  color_buffer.values[index] = Pixel(0., 1., 0.333);
+  atomicStore(&color_buffer.values[index + 0u], 255u);
+  atomicStore(&color_buffer.values[index + 1u], 255u);
+  atomicStore(&color_buffer.values[index + 2u], 255u);
 }
