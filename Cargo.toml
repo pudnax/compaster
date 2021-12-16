@@ -11,6 +11,7 @@ color-eyre = "0.5.11"
 env_logger = "0.9.0"
 glam = { version = "0.20.1", features = ["bytemuck"] }
 gltf = "0.16.0"
+obj = "0.10.2"
 pollster = "0.2.4"
 raw-window-handle = "0.4.2"
 wgpu = { git = "https://github.com/gfx-rs/wgpu", rev = "6c2e8edb64221fdb42dfb3fadcb27058bc25db27" }

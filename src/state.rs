@@ -21,7 +21,7 @@ use raster_pass::{RasterBindings, RasterPass};
 
 use crate::{
     camera::{Camera, CameraUniform},
-    state::{raster_pass::ClearPass, util::process_model},
+    state::{raster_pass::ClearPass, util::process_gltf_model},
 };
 
 pub struct State {
@@ -126,7 +126,7 @@ impl State {
 
         // vec2 pos, float col
         // let vertices = Vec::from([v!(-1., -1., 0.), v!(-1., 1., 0.), v!(1., -1., 0.)]);
-        let vertices = process_model();
+        let vertices = process_gltf_model();
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(&vertices),
@@ -179,7 +179,7 @@ impl State {
 
     pub fn update(&mut self, t: f32) {
         self.camera_uniform.update_view_proj(&self.camera);
-        let view = Mat4::from_translation(vec3(9., 5., -10.));
+        let view = Mat4::from_translation(vec3(5., 3., -6.));
         let model = Mat4::from_rotation_x(PI / 2.);
         let model = Mat4::from_rotation_y(t) * model;
         // let model = Mat4::from_rotation_y(PI / 2. + t) * model;

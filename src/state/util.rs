@@ -1,7 +1,9 @@
+use std::io::Cursor;
+
 use bytemuck::{Pod, Zeroable};
 
 #[allow(clippy::iter_nth_zero)]
-pub fn process_model() -> Vec<Vertex> {
+pub fn process_gltf_model() -> Vec<Vertex> {
     let (model, buffers, _) = {
         let bytes = include_bytes!("../../models/suzanne.glb");
         gltf::import_slice(bytes).unwrap()
@@ -15,6 +17,18 @@ pub fn process_model() -> Vec<Vertex> {
         .unwrap()
         .into_u32()
         .map(|i| Vertex::from(positions[i as usize]))
+        .collect()
+}
+
+#[allow(dead_code)]
+pub fn process_obj_model() -> Vec<Vertex> {
+    let file = include_str!("../../models/thicc_ferris.obj");
+    obj::ObjData::load_buf(Cursor::new(file))
+        .unwrap()
+        .position
+        .iter()
+        .cloned()
+        .map(Vertex::from)
         .collect()
 }
 

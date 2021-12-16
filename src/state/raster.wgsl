@@ -85,7 +85,7 @@ fn draw_triangle(v1: vec3<f32>, v2: vec3<f32>, v3: vec3<f32>) {
   for (var x: u32 = startX; x <= endX; x = x + 1u) {
     for (var y : u32 = startY; y <= endY; y = y + 1u) {
       let bc = barycentric(v1, v2, v3, vec2<f32>(f32(x), f32(y)));
-      let color = (bc.x * v1.z + bc.y * v2.z + bc.z * v3.z) * 50. - 400.;
+      let color = (bc.x * v1.z + bc.y * v2.z + bc.z * v3.z) * 25. - 100.;
 
       let R = color;
       let G = color;
