@@ -21,7 +21,7 @@ use raster_pass::{RasterBindings, RasterPass};
 
 use crate::{
     camera::{Camera, CameraUniform},
-    state::raster_pass::ClearPass,
+    state::{raster_pass::ClearPass, util::process_model},
 };
 
 pub struct State {
@@ -125,31 +125,8 @@ impl State {
         let output_buffer = create_color_buffer(&device, width, height);
 
         // vec2 pos, float col
-        // let vertices = Vec::from([v!(-1., -1., 1.), v!(-1., 1., 1.), v!(1., -1., 1.)]);
-        let vertices = Vec::from([
-            v!(-1., -1., 0.),
-            v!(-1., 1., 0.),
-            v!(0., 0., 0.),
-            v!(-2., -2., 1.),
-            v!(-2., 1., 1.),
-            v!(0., 0., 1.),
-            //
-            v!(-1. - 4., -1. - 3., 0. + 10.),
-            v!(-1. - 4., 1. - 3., 0. + 10.),
-            v!(0. - 4., 0. - 3., 0. + 10.),
-            v!(-2. + 4., -2. + 3., 1. - 10.),
-            v!(-2. + 4., 1. + 3., 1. - 10.),
-            v!(0. + 4., 0. + 3., 1. - 10.),
-            // v!(100., 200., 1.),
-            // v!(200., 200., 1.),
-            // v!(300., 300., 1.),
-            // v!(500., 200., 1.),
-            // v!(600., 200., 1.),
-            // v!(700., 300., 1.),
-            // v!(-100. + 400., -100. + 400., 1.),
-            // v!(-100. + 400., 100. + 400., 1.),
-            // v!(100. + 400., -100. + 400., 0.1),
-        ]);
+        // let vertices = Vec::from([v!(-1., -1., 0.), v!(-1., 1., 0.), v!(1., -1., 0.)]);
+        let vertices = process_model();
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(&vertices),
@@ -202,11 +179,12 @@ impl State {
 
     pub fn update(&mut self, t: f32) {
         self.camera_uniform.update_view_proj(&self.camera);
-        let view = Mat4::from_translation(vec3(5., 5., -20.));
-        let model = Mat4::from_rotation_x(PI / 2. + t);
+        let view = Mat4::from_translation(vec3(9., 5., -10.));
+        let model = Mat4::from_rotation_x(PI / 2.);
+        let model = Mat4::from_rotation_y(t) * model;
         // let model = Mat4::from_rotation_y(PI / 2. + t) * model;
         let view = view * model;
-        let proj = Mat4::perspective_rh((2. * PI) / 5., 1., 1.0, 100.0);
+        // let proj = Mat4::perspective_rh((2. * PI) / 5., 1., 1.0, 100.0);
         let proj =
             Mat4::perspective_rh((PI) / 2., self.width as f32 / self.height as f32, 0.1, 30.0);
         let res = proj * view;

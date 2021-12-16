@@ -43,7 +43,7 @@ pub fn draw_lines_command(
 
     let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("Line Cam"),
-        layout: &&camera_bind_group_layout,
+        layout: &camera_bind_group_layout,
         entries: &[wgpu::BindGroupEntry {
             binding: 0,
             resource: camera_uniform.as_entire_binding(),

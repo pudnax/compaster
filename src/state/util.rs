@@ -1,5 +1,23 @@
 use bytemuck::{Pod, Zeroable};
 
+#[allow(clippy::iter_nth_zero)]
+pub fn process_model() -> Vec<Vertex> {
+    let (model, buffers, _) = {
+        let bytes = include_bytes!("../../models/suzanne.glb");
+        gltf::import_slice(bytes).unwrap()
+    };
+    let mesh = model.meshes().nth(0).unwrap();
+    let primitives = mesh.primitives().nth(0).unwrap();
+    let reader = primitives.reader(|buffer| Some(&buffers[buffer.index()]));
+    let positions = reader.read_positions().unwrap().collect::<Vec<_>>();
+    reader
+        .read_indices()
+        .unwrap()
+        .into_u32()
+        .map(|i| Vertex::from(positions[i as usize]))
+        .collect()
+}
+
 pub(crate) const WORKGROUP_SIZE: u32 = 256;
 pub(crate) const fn dispatch_size(len: u32) -> u32 {
     let subgroup_size = WORKGROUP_SIZE;
@@ -67,6 +85,12 @@ macro_rules! v {
     };
 }
 pub(crate) use v;
+
+impl From<[f32; 3]> for Vertex {
+    fn from(v: [f32; 3]) -> Self {
+        v!(v[0], v[1], v[2])
+    }
+}
 
 #[allow(dead_code)]
 pub const TRIG: [Vertex; 3] = [v!(0.0, 0.5, 0.0), v!(-0.5, 0.0, 0.0), v!(0.5, 0.0, 0.0)];
