@@ -12,9 +12,7 @@ mod present_pass;
 mod raster_pass;
 mod util;
 
-mod line;
-
-use util::{create_color_buffer, dispatch_size, v, Uniform, Vertex};
+use util::{create_color_buffer, dispatch_size, Uniform, Vertex};
 
 use present_pass::{PresentBindings, PresentPass};
 use raster_pass::{RasterBindings, RasterPass};
@@ -51,8 +49,6 @@ pub struct State {
     present_bindings: PresentBindings,
 
     clear_pass: ClearPass,
-
-    lines: wgpu::RenderBundle,
 }
 
 impl State {
@@ -144,8 +140,6 @@ impl State {
             &camera_buffer,
         );
 
-        let lines = line::draw_lines_command(&device, 1, format, &camera_buffer);
-
         Ok(Self {
             device,
             surface,
@@ -172,8 +166,6 @@ impl State {
             present_bindings,
 
             clear_pass,
-
-            lines,
         })
     }
 
@@ -270,8 +262,6 @@ impl State {
                 depth_stencil_attachment: None,
             });
             self.present_pass.record(&mut rpass, &self.present_bindings);
-
-            rpass.execute_bundles(std::iter::once(&self.lines));
         }
 
         self.queue.submit(Some(encoder.finish()));
