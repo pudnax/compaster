@@ -46,6 +46,7 @@ fn main() -> Result<()> {
     let mut last_update_inst = Instant::now();
     let mut last_frame_inst = Instant::now();
     let mut frame_counter = FrameCounter::new();
+    let time = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -100,7 +101,6 @@ fn main() -> Result<()> {
                 }
                 DeviceEvent::MouseWheel { delta, .. } => {
                     let scroll_amount = -match delta {
-                        // A mouse line is about 1 px.
                         MouseScrollDelta::LineDelta(_, scroll) => scroll * 1.0,
                         MouseScrollDelta::PixelDelta(PhysicalPosition { y: scroll, .. }) => {
                             *scroll as f32
@@ -119,7 +119,7 @@ fn main() -> Result<()> {
 
             Event::RedrawRequested(_) => {
                 frame_counter.record(&mut last_frame_inst);
-                state.update();
+                state.update(time.elapsed().as_secs_f32());
                 match state.render() {
                     Ok(_) => {}
                     Err(wgpu::SurfaceError::Lost) => {

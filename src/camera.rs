@@ -35,7 +35,7 @@ pub struct Camera {
 }
 
 impl Camera {
-    const ZFAR: f32 = 20.;
+    const ZFAR: f32 = 100.;
     const ZNEAR: f32 = 0.1;
     const FOVY: f32 = std::f32::consts::PI / 2.0;
     const UP: Vec3 = Vec3::Y;
@@ -56,6 +56,7 @@ impl Camera {
 
     pub fn build_view_projection_matrix(&self) -> Mat4 {
         let view = Mat4::look_at_rh(self.eye, self.target, self.up);
+        // let view = view * Mat4::from_translation(glam::vec3(4., 3., -10.));
         let proj = Mat4::perspective_rh(Self::FOVY, self.aspect, Self::ZNEAR, Self::ZFAR);
         proj * view
     }

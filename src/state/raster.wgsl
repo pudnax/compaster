@@ -34,7 +34,6 @@ fn project(v: Vertex) -> vec3<f32> {
   screen_pos.x = (screen_pos.x / screen_pos.w) * screen_dims.width;
   screen_pos.y = (screen_pos.y / screen_pos.w) * screen_dims.height;
 
-  // return vec3<f32>(v.x, v.y, v.z);
   return screen_pos.xyw;
 }
 
@@ -98,6 +97,16 @@ fn draw_triangle(v1: vec3<f32>, v2: vec3<f32>, v3: vec3<f32>) {
   }
 }
 
+// move it inside the color pix function
+fn is_off_screen(v: vec3<f32>) -> bool {
+  if (v.x < 0.0 || v.x > screen_dims.width || v.y < 0.0 ||
+      v.y > screen_dims.height) {
+    return true;
+  }
+
+  return false;
+}
+
 [[stage(compute), workgroup_size(256, 1, 1)]]
 fn raster([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
   let index = global_id.x;
@@ -106,6 +115,10 @@ fn raster([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
   let v1 = project(vertex_buffer.values[vertex_idx + 0u]);
   let v2 = project(vertex_buffer.values[vertex_idx + 1u]);
   let v3 = project(vertex_buffer.values[vertex_idx + 2u]);
+
+  if (is_off_screen(v1) || is_off_screen(v2) || is_off_screen(v3)) {
+    return;
+  }
 
   // color_pixel(u32(v1.x), u32(v1.y), Pixel(1.0, 0.0, 0.0));
   // color_pixel(u32(v2.x), u32(v2.y), Pixel(1.0, 0.0, 0.0));

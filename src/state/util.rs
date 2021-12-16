@@ -21,10 +21,6 @@ impl Uniform {
             screen_height,
         }
     }
-
-    pub fn update(queue: &wgpu::Queue, buffer: &wgpu::Buffer, width: f32, height: f32) {
-        queue.write_buffer(buffer, 0, bytemuck::bytes_of(&Uniform::new(width, height)));
-    }
 }
 
 pub fn create_color_buffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Buffer {

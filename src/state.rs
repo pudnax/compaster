@@ -1,4 +1,7 @@
+use std::f32::consts::PI;
+
 use color_eyre::Result;
+use glam::{vec3, Mat4};
 use raw_window_handle::HasRawWindowHandle;
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
@@ -8,6 +11,8 @@ use wgpu::{
 mod present_pass;
 mod raster_pass;
 mod util;
+
+mod line;
 
 use util::{create_color_buffer, dispatch_size, v, Uniform, Vertex};
 
@@ -46,6 +51,8 @@ pub struct State {
     present_bindings: PresentBindings,
 
     clear_pass: ClearPass,
+
+    lines: wgpu::RenderBundle,
 }
 
 impl State {
@@ -118,8 +125,31 @@ impl State {
         let output_buffer = create_color_buffer(&device, width, height);
 
         // vec2 pos, float col
-        let vertices = Vec::from([v!(-1., -1., 1.), v!(-1., 1., 1.), v!(1., -1., 1.)]);
-        // let vertices = Vec::from([v!(100., 200., 1.), v!(200., 200., 1.), v!(300., 300., 1.)]);
+        // let vertices = Vec::from([v!(-1., -1., 1.), v!(-1., 1., 1.), v!(1., -1., 1.)]);
+        let vertices = Vec::from([
+            v!(-1., -1., 0.),
+            v!(-1., 1., 0.),
+            v!(0., 0., 0.),
+            v!(-2., -2., 1.),
+            v!(-2., 1., 1.),
+            v!(0., 0., 1.),
+            //
+            v!(-1. - 4., -1. - 3., 0. + 10.),
+            v!(-1. - 4., 1. - 3., 0. + 10.),
+            v!(0. - 4., 0. - 3., 0. + 10.),
+            v!(-2. + 4., -2. + 3., 1. - 10.),
+            v!(-2. + 4., 1. + 3., 1. - 10.),
+            v!(0. + 4., 0. + 3., 1. - 10.),
+            // v!(100., 200., 1.),
+            // v!(200., 200., 1.),
+            // v!(300., 300., 1.),
+            // v!(500., 200., 1.),
+            // v!(600., 200., 1.),
+            // v!(700., 300., 1.),
+            // v!(-100. + 400., -100. + 400., 1.),
+            // v!(-100. + 400., 100. + 400., 1.),
+            // v!(100. + 400., -100. + 400., 0.1),
+        ]);
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(&vertices),
@@ -136,6 +166,8 @@ impl State {
             &screen_uniform,
             &camera_buffer,
         );
+
+        let lines = line::draw_lines_command(&device, 1, format, &camera_buffer);
 
         Ok(Self {
             device,
@@ -163,15 +195,28 @@ impl State {
             present_bindings,
 
             clear_pass,
+
+            lines,
         })
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, t: f32) {
         self.camera_uniform.update_view_proj(&self.camera);
+        let view = Mat4::from_translation(vec3(5., 5., -20.));
+        let model = Mat4::from_rotation_x(PI / 2. + t);
+        // let model = Mat4::from_rotation_y(PI / 2. + t) * model;
+        let view = view * model;
+        let proj = Mat4::perspective_rh((2. * PI) / 5., 1., 1.0, 100.0);
+        let proj =
+            Mat4::perspective_rh((PI) / 2., self.width as f32 / self.height as f32, 0.1, 30.0);
+        let res = proj * view;
+        // println!("{}", &res);
+        self.camera_uniform.view_position = [4., 3., -10., 1.];
+        self.camera_uniform.view_proj = res.to_cols_array_2d();
         self.queue.write_buffer(
             &self.camera_buffer,
             0,
-            bytemuck::cast_slice(&[self.camera_uniform]),
+            bytemuck::bytes_of(&self.camera_uniform),
         );
     }
 
@@ -181,7 +226,11 @@ impl State {
         self.surface_config.width = width;
         self.surface_config.height = height;
         self.surface.configure(&self.device, &self.surface_config);
-        Uniform::update(&self.queue, &self.screen_uniform, width as _, height as _);
+        self.queue.write_buffer(
+            &self.screen_uniform,
+            0,
+            bytemuck::bytes_of(&Uniform::new(width as _, height as _)),
+        );
 
         self.output_buffer = create_color_buffer(&self.device, width, height);
         self.present_bindings.update_color_buffer(
@@ -243,6 +292,8 @@ impl State {
                 depth_stencil_attachment: None,
             });
             self.present_pass.record(&mut rpass, &self.present_bindings);
+
+            rpass.execute_bundles(std::iter::once(&self.lines));
         }
 
         self.queue.submit(Some(encoder.finish()));
