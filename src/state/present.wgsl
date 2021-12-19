@@ -8,12 +8,10 @@ fn pixel_to_vec(p: Pixel) -> vec3<f32> {
   return vec3<f32>(f32(p.r), f32(p.g), f32(p.b)) / 255.0;
 }
 
-[[block]]
 struct ColorBuffer {
   value: array<Pixel>;
 };
 
-[[block]]
 struct Uniform {
   screen_width: f32;
   screen_height: f32;

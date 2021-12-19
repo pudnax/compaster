@@ -14,7 +14,7 @@ gltf = "0.16.0"
 obj = "0.10.2"
 pollster = "0.2.4"
 raw-window-handle = "0.4.2"
-wgpu = { git = "https://github.com/gfx-rs/wgpu", rev = "6c2e8edb64221fdb42dfb3fadcb27058bc25db27" }
+wgpu = "0.12.0"
 winit = "0.26.0"
 
 [profile.dev]

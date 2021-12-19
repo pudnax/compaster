@@ -1,22 +1,18 @@
-[[block]]
 struct ColorBuffer {
   values: array<atomic<u32>>;
 };
 
 struct Vertex { x: f32; y: f32; z: f32; };
 
-[[block]]
 struct VertexBuffer {
   values: array<Vertex>;
 };
 
-[[block]]
 struct Uniform {
   width: f32;
   height: f32;
 };
 
-[[block]]
 struct Camera {
   view_pos: vec4<f32>;
   view_proj: mat4x4<f32>;
