@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::io::Read;
 
 use bytemuck::{Pod, Zeroable};
 
@@ -21,9 +21,8 @@ pub fn process_gltf_model() -> Vec<Vertex> {
 }
 
 #[allow(dead_code)]
-pub fn process_obj_model() -> Vec<Vertex> {
-    let file = include_str!("../../models/thicc_ferris.obj");
-    obj::ObjData::load_buf(Cursor::new(file))
+pub fn process_obj_model(file: impl Read) -> Vec<Vertex> {
+    obj::ObjData::load_buf(file)
         .unwrap()
         .position
         .iter()
