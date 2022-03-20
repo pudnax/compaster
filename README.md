@@ -4,10 +4,6 @@
 
 This is a basic implementation of a rasterizer using compute shaders and [wgpu](https://github.com/gfx-rs/wgpu).
 
-Based on: https://github.com/OmarShehata/webgpu-compute-rasterizer/blob/main/code-overview.md
-
-Follow Omar's tutorial for further explanation of techniques.
-
 ## Differences
 
 1. Typed GPU buffers.
