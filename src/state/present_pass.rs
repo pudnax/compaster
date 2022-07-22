@@ -37,7 +37,7 @@ impl PresentPass {
             bind_group_layouts: &[&output_color_bind_group_layout, &uniform_bind_group],
             push_constant_ranges: &[],
         });
-        let shader = device.create_shader_module(&wgpu::include_wgsl!("present.wgsl"));
+        let shader = device.create_shader_module(wgpu::include_wgsl!("present.wgsl"));
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Present Pipeline"),
             layout: Some(&layout),
@@ -49,7 +49,7 @@ impl PresentPass {
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
                 entry_point: "fs_main",
-                targets: &[format.into()],
+                targets: &[Some(format.into())],
             }),
             primitive: wgpu::PrimitiveState::default(),
             depth_stencil: None,

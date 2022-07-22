@@ -71,7 +71,7 @@ impl RasterPass {
             ],
             push_constant_ranges: &[],
         });
-        let shader = device.create_shader_module(&wgpu::include_wgsl!("raster.wgsl"));
+        let shader = device.create_shader_module(wgpu::include_wgsl!("raster.wgsl"));
         let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some("Raster Pipeline"),
             layout: Some(&layout),
@@ -96,7 +96,7 @@ impl<'a> RasterPass {
         cpass.set_bind_group(1, &bindings.vertex_buffer, &[]);
         cpass.set_bind_group(2, &bindings.uniform, &[]);
         cpass.set_bind_group(3, &bindings.camera_uniform, &[]);
-        cpass.dispatch(dispatch_size, 1, 1);
+        cpass.dispatch_workgroups(dispatch_size, 1, 1);
     }
 }
 
@@ -198,7 +198,7 @@ impl ClearPass {
             bind_group_layouts: &[&output_color_bind_group_layout],
             push_constant_ranges: &[],
         });
-        let shader = device.create_shader_module(&wgpu::include_wgsl!("raster.wgsl"));
+        let shader = device.create_shader_module(wgpu::include_wgsl!("raster.wgsl"));
         let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some("Clear Pipeline"),
             layout: Some(&layout),
@@ -220,6 +220,6 @@ impl<'a> ClearPass {
     {
         cpass.set_pipeline(&self.pipeline);
         cpass.set_bind_group(0, &bindings.color_buffer, &[]);
-        cpass.dispatch(dispatch_size, 1, 1);
+        cpass.dispatch_workgroups(dispatch_size, 1, 1);
     }
 }

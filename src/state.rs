@@ -5,7 +5,7 @@ use glam::{vec3, Mat4};
 use raw_window_handle::HasRawWindowHandle;
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
-    SurfaceConfiguration,
+    SurfaceConfiguration, TextureFormat,
 };
 
 mod present_pass;
@@ -52,12 +52,10 @@ pub struct State {
 }
 
 impl State {
-    pub async fn new(
-        window: &impl HasRawWindowHandle,
-        width: u32,
-        height: u32,
-        camera: Camera,
-    ) -> Result<Self> {
+    pub async fn new<W>(window: &W, width: u32, height: u32, camera: Camera) -> Result<Self>
+    where
+        W: HasRawWindowHandle,
+    {
         let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
         let surface = unsafe { instance.create_surface(window) };
 
@@ -77,7 +75,11 @@ impl State {
 
         let limits = adapter.limits();
         let features = adapter.features();
-        let format = surface.get_preferred_format(&adapter).unwrap();
+        let format = surface
+            .get_supported_formats(&adapter)
+            .into_iter()
+            .find(|&x| x == TextureFormat::Bgra8Unorm)
+            .unwrap_or(TextureFormat::Bgra8Unorm);
 
         let (device, queue) = adapter
             .request_device(
@@ -246,7 +248,7 @@ impl State {
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
-                color_attachments: &[wgpu::RenderPassColorAttachment {
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view,
                     resolve_target: None,
                     ops: wgpu::Operations {
@@ -258,7 +260,7 @@ impl State {
                         }),
                         store: true,
                     },
-                }],
+                })],
                 depth_stencil_attachment: None,
             });
             self.present_pass.record(&mut rpass, &self.present_bindings);
